@@ -1,0 +1,46 @@
+# Zustand DevTools
+
+A Chrome DevTools panel that shows live [Zustand](https://github.com/pmndrs/zustand) store
+state, with zero code changes to your app.
+
+## What it does
+
+Open Chrome DevTools on any page using Zustand, click the "Zustand" tab, and see every
+component's current store-selected values update live as you interact with the page — no
+setup, no imports, nothing added to your app.
+
+**Free**
+- Live component state, updating in real time
+- Search/filter by component name
+- Matches Chrome DevTools' own light/dark theme
+
+**Paid upgrade** (one-time purchase, via the optional `zustand-devtools-bridge` npm
+package — one import line in a store)
+- Named action log across all your stores
+- One-click time-travel to any past state
+- Unified multi-store timeline
+
+## Install
+
+Not yet published to the Chrome Web Store — in progress. This repository contains:
+
+- `extension/` — the Chrome extension itself
+- `bridge/` — the optional npm package (`zustand-devtools-bridge`) for the paid tier
+- `test-app/` — verification fixtures used during development
+
+## How it works
+
+The free tier installs a lightweight hook (`window.__REACT_DEVTOOLS_GLOBAL_HOOK__`) before
+React loads, the same mechanism the real React DevTools extension uses, so it can read
+component state directly from React's Fiber tree — no dependency on the real React
+DevTools extension being installed. This only becomes active while you have DevTools open
+with the Zustand panel active on a tab; otherwise it's completely idle.
+
+## Privacy
+
+No data collection, no analytics, no server. See `PRIVACY.md` for details.
+
+## License
+
+MIT for the extension and the `bridge/` package's source. The paid tier's unlock is a
+one-time license purchase, not a code license restriction.

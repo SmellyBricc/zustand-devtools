@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Zustand DevTools — test app</title>
+    <!-- Loads the REAL, unmodified extension/page-script.js — verifying the
+         actual shipped file, not a re-implemented stand-in. -->
+    <script src="../extension/page-script.js"></script>
+    <script>
+      window.__received = [];
+      window.addEventListener("message", (event) => {
+        if (event.source !== window) return;
+        if (!event.data || event.data.source !== "zustand-devtools-page") return;
+        window.__received.push(event.data);
+      });
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module">
+      import React from "https://esm.sh/react@18.3.1";
+      import { createRoot } from "https://esm.sh/react-dom@18.3.1/client?deps=react@18.3.1";
+      import { create } from "https://esm.sh/zustand@4.5.7?deps=react@18.3.1,react-dom@18.3.1";
+
+      // Store A: a simple counter
+      const useCounterStore = create((set) => ({
+        count: 0,
+        increment: () => set((s) => ({ count: s.count + 1 })),
+        decrement: () => set((s) => ({ count: s.count - 1 })),
+      }));
+
+      // Store B: a small "user" object, to prove multi-store + nested-value reading
+      const useUserStore = create((set) => ({
+        name: "Ada",
+        loggedIn: false,
+        toggleLogin: () => set((s) => ({ loggedIn: !s.loggedIn })),
+      }));
+
+      function Counter() {
+        const count = useCounterStore((s) => s.count);
+        const increment = useCounterStore((s) => s.increment);
+        const decrement = useCounterStore((s) => s.decrement);
+        return React.createElement(
+          "div",
+          null,
+          React.createElement("h2", null, "Counter"),
+          React.createElement("p", null, "Count: ", count),
+          React.createElement("button", { onClick: increment }, "+"),
+          React.createElement("button", { onClick: decrement }, "-")
+        );
+      }
+
+      function UserPanel() {
+        const name = useUserStore((s) => s.name);
+        const loggedIn = useUserStore((s) => s.loggedIn);
+        const toggleLogin = useUserStore((s) => s.toggleLogin);
+        return React.createElement(
+          "div",
+          null,
+          React.createElement("h2", null, "User"),
+          React.createElement("p", null, "Name: ", name, " — ", loggedIn ? "logged in" : "logged out"),
+          React.createElement("button", { onClick: toggleLogin }, "Toggle login")
+        );
+      }
+
+      function App() {
+        const [showCounter, setShowCounter] = React.useState(true);
+        return React.createElement(
+          "div",
+          { style: { fontFamily: "sans-serif", padding: 24 } },
+          React.createElement("h1", null, "Zustand DevTools spike test app"),
+          React.createElement(
+            "button",
+            { onClick: () => setShowCounter((v) => !v) },
+            "Toggle counter mount"
+          ),
+          showCounter ? React.createElement(Counter) : null,
+          React.createElement(UserPanel)
+        );
+      }
+
+      createRoot(document.getElementById("root")).render(React.createElement(App));
+    </script>
+  </body>
+</html>

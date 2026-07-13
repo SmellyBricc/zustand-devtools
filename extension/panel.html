@@ -1,0 +1,46 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="panel.css" />
+  </head>
+  <body>
+    <header id="topbar">
+      <div id="live-indicator" class="dot" title="Not connected"></div>
+      <div id="status">Waiting for a React renderer on this page…</div>
+      <input id="search" type="text" placeholder="Filter by component name…" />
+    </header>
+    <nav id="tabs">
+      <button class="tab-btn active" data-tab="live">Live State</button>
+      <button class="tab-btn" data-tab="actions">Action Log</button>
+    </nav>
+    <main id="panels">
+      <section id="tab-live" class="tab-panel active">
+        <div id="list"></div>
+        <div id="empty" class="empty-state" style="display: none">
+          No component state detected yet — interact with the page.
+        </div>
+      </section>
+      <section id="tab-actions" class="tab-panel">
+        <div id="actions-paywall" class="paywall" style="display: none">
+          <h2>Action Log &amp; Time-Travel</h2>
+          <p>
+            Add the one-line <code>zustand-devtools-bridge</code> package to a store to unlock a
+            named action log, one-click time-travel, and a unified multi-store timeline.
+          </p>
+          <p id="license-status" class="license-status"></p>
+          <div class="license-row">
+            <button id="buy-btn">Buy license</button>
+            <input id="license-input" type="text" placeholder="Paste license key…" />
+            <button id="activate-btn">Activate</button>
+          </div>
+        </div>
+        <div id="actions-empty" class="empty-state" style="display: none">
+          No actions recorded yet — trigger a store update on the page.
+        </div>
+        <div id="actions-list"></div>
+      </section>
+    </main>
+    <script src="panel.js"></script>
+  </body>
+</html>

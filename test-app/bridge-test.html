@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>zustand-devtools-bridge — verification harness</title>
+    <script>
+      window.__bridgeReceived = [];
+      window.addEventListener("message", (event) => {
+        if (event.source !== window) return;
+        if (!event.data || event.data.source !== "zustand-devtools-bridge") return;
+        window.__bridgeReceived.push(event.data);
+      });
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module">
+      import { create } from "https://esm.sh/zustand@4.5.7";
+      // Loads the REAL, unmodified bridge/src/index.js — verifying the
+      // actual shipped source, not a re-implemented stand-in.
+      import { withDevtoolsBridge } from "../bridge/src/index.js";
+
+      window.useCartStore = create(
+        withDevtoolsBridge(
+          (set, get) => ({
+            items: [],
+            addItem: (item) => set((s) => ({ items: [...s.items, item] }), false, "addItem"),
+            checkout: () => set({ items: [] }, false, "checkout"),
+          }),
+          { name: "cart" }
+        )
+      );
+
+      window.useUserStore = create(
+        withDevtoolsBridge(
+          (set) => ({
+            name: "Ada",
+            rename: (name) => set({ name }, false, "rename"),
+          }),
+          { name: "user" }
+        )
+      );
+
+      window.__bridgeReady = true;
+    </script>
+  </body>
+</html>
