@@ -22,10 +22,17 @@ package — one import line in a store)
 
 ## Install
 
-Not yet published to the Chrome Web Store — in progress. This repository contains:
+The extension itself isn't on the Chrome Web Store yet — in progress. The optional paid
+tier's package is published and installable today:
+
+```
+npm install zustand-devtools-bridge
+```
+
+This repository contains:
 
 - `extension/` — the Chrome extension itself
-- `bridge/` — the optional npm package (`zustand-devtools-bridge`) for the paid tier
+- `bridge/` — the `zustand-devtools-bridge` npm package for the paid tier
 - `test-app/` — verification fixtures used during development
 
 ## How it works

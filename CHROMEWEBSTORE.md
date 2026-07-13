@@ -128,8 +128,11 @@ similar) before submitting, and paste that URL here.
 **Publisher Name** — fill in before submitting
 **Contact Email** — fill in before submitting (must be monitored; Google sends policy
 notices here)
-**Support URL / Email** — recommend the GitHub repository's Issues page
-**Homepage URL** — the GitHub repository URL
+**Support URL / Email**
+https://github.com/SmellyBricc/zustand-devtools/issues
+
+**Homepage URL**
+https://github.com/SmellyBricc/zustand-devtools
 
 ## Version History
 
@@ -145,8 +148,12 @@ notices here)
 - Time-travel restores data fields via a merge, not a full state replace, since only
   serializable data (not functions) ever crosses the messaging boundary — restoring a very
   old snapshot won't remove object keys added after that snapshot.
-- The Lemon Squeezy checkout URL is a placeholder until the store/product are created —
-  see `MONETIZATION.md`.
+- The Lemon Squeezy store, product, and checkout URL are live (see `MONETIZATION.md`) —
+  identity verification and a payout method still need to be finished on Kuba's end before
+  real (non-test-mode) purchases can be accepted.
+- The `zustand-devtools-bridge` package's npm publish is still pending (see
+  `MONETIZATION.md`) — the code is finished and public on GitHub, but not yet installable
+  via `npm install` until that's done.
 
 ### Rejection History
 None yet — first submission pending.
