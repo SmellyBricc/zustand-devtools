@@ -54,12 +54,46 @@ function post(message) {
   }
 }
 
+// Without this, a normal dev workflow (page refresh, hot reload) would wipe
+// the action log every time — not acceptable for something sold as a
+// debugging tool. sessionStorage survives reloads but clears when the tab
+// closes, which is the right lifetime here (matches "this session's debug
+// history", not a permanent record). Entries are stored already-sanitized
+// (functions can't survive JSON anyway), kept under the same `rawState`
+// field name so loaded and freshly-recorded entries have one shape.
+const HISTORY_STORAGE_PREFIX = "zdt-history:";
+
+function loadHistory(name) {
+  try {
+    if (typeof sessionStorage === "undefined") return [];
+    const raw = sessionStorage.getItem(HISTORY_STORAGE_PREFIX + name);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveHistory(name, history) {
+  try {
+    if (typeof sessionStorage === "undefined") return;
+    const serializable = history.map((e) => ({
+      actionName: e.actionName,
+      timestamp: e.timestamp,
+      rawState: sanitizeState(e.rawState, 0),
+    }));
+    sessionStorage.setItem(HISTORY_STORAGE_PREFIX + name, JSON.stringify(serializable));
+  } catch (e) {
+    // fail safe — storage quota or serialization issues shouldn't break the app
+  }
+}
+
 function recordAction(name, actionName, rawState) {
   const record = registry.get(name);
   if (!record) return;
   const entry = { actionName: actionName || "anonymous", rawState, timestamp: Date.now() };
   record.history.push(entry);
   if (record.history.length > MAX_HISTORY) record.history.shift();
+  saveHistory(name, record.history);
   post({ type: "ACTION", store: name, actionName: entry.actionName, timestamp: entry.timestamp, state: sanitizeState(rawState, 0) });
 }
 
@@ -118,7 +152,7 @@ if (typeof window !== "undefined") {
 export function withDevtoolsBridge(storeCreator, options) {
   const name = (options && options.name) || "store";
   return (set, get, api) => {
-    registry.set(name, { api, history: [] });
+    registry.set(name, { api, history: loadHistory(name) });
     const wrappedSet = (partial, replace, actionName) => {
       set(partial, replace);
       recordAction(name, actionName, get());

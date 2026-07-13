@@ -1,5 +1,14 @@
 # Monetization setup — manual steps only you can do
 
+**Status (2026-07-13): store, product, and checkout link are done.** Store is
+`zustand-devtools-app.lemonsqueezy.com` (Test mode — identity verification/payout still
+pending review before real payments work), product "Zustand DevTools — Action Log &
+Time-Travel" is published at €9.99 one-time with license keys enabled (unlimited length, 5
+activations). Checkout URL is already wired into `extension/panel.js`'s
+`LEMON_SQUEEZY_CHECKOUT_URL`. Remaining: do a test-mode purchase to get a real license key
+and confirm the Activate flow end-to-end, then finish identity verification + connect a
+payout method (Settings → Payouts) before going live for real customers.
+
 The extension and the `bridge/` package are fully wired for a one-time-purchase license
 model via Lemon Squeezy (merchant-of-record, handles EU/Irish VAT automatically). None of
 the code below depends on these steps being done first — until you finish them, the
