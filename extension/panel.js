@@ -1,5 +1,5 @@
 const LEMON_SQUEEZY_CHECKOUT_URL = "https://zustand-devtools-app.lemonsqueezy.com/checkout/buy/2e844294-f46f-4786-b425-2b0245b58f3b";
-const LEMON_SQUEEZY_VALIDATE_URL = "https://api.lemonsqueezy.com/v1/licenses/validate";
+const LEMON_SQUEEZY_ACTIVATE_URL = "https://api.lemonsqueezy.com/v1/licenses/activate";
 
 document.documentElement.dataset.theme =
   chrome.devtools.panels.themeName === "dark" ? "dark" : "light";
@@ -25,6 +25,12 @@ const port = chrome.runtime.connect({ name: "zdt-panel-" + tabId });
 let lastComponents = [];
 const actionsByStore = new Map(); // store name -> [{actionName, state, timestamp}]
 let licensed = false;
+// Tracks which component names the user has manually collapsed. Without
+// this, renderComponents() rebuilds the whole list from scratch on every
+// STATE_UPDATE (which can fire many times a second for a live app), always
+// defaulting back to expanded — the collapse affordance would self-undo
+// almost immediately for anything that updates frequently.
+const collapsedComponents = new Set();
 
 // ---- Tabs ----
 document.querySelectorAll(".tab-btn").forEach((btn) => {
@@ -99,10 +105,15 @@ function renderComponents() {
   for (const c of filtered) {
     const div = document.createElement("div");
     div.className = "component";
+    if (collapsedComponents.has(c.component)) div.classList.add("collapsed");
     const nameEl = document.createElement("div");
     nameEl.className = "component-name";
     nameEl.textContent = c.component;
-    nameEl.addEventListener("click", () => div.classList.toggle("collapsed"));
+    nameEl.addEventListener("click", () => {
+      div.classList.toggle("collapsed");
+      if (div.classList.contains("collapsed")) collapsedComponents.add(c.component);
+      else collapsedComponents.delete(c.component);
+    });
     const tree = document.createElement("div");
     tree.className = "value-tree";
     c.values.forEach((v, i) => {
@@ -214,7 +225,13 @@ function renderActionLog() {
     lastStateByStore.set(entry.store, entry.state);
 
     row.addEventListener("click", () => {
-      port.postMessage({ type: "TIME_TRAVEL_JUMP", store: entry.store, state: entry.state });
+      try {
+        port.postMessage({ type: "TIME_TRAVEL_JUMP", store: entry.store, state: entry.state });
+      } catch (e) {
+        // Port already disconnected (e.g. the service worker restarted) —
+        // nothing to recover into here; the disconnect handler below
+        // already reflects this in the status text.
+      }
     });
     actionsListEl.appendChild(row);
   }
@@ -258,7 +275,18 @@ function recordAction(msg) {
 }
 
 function recordHistory(msg) {
-  actionsByStore.set(msg.store, (msg.entries || []).slice());
+  // Merge rather than overwrite — a live ACTION message for this store can
+  // arrive in the brief window between sending REQUEST_HISTORY and
+  // receiving this reply; blindly replacing the array would silently drop
+  // it. Dedup by actionName+timestamp and keep chronological order.
+  const existing = actionsByStore.get(msg.store) || [];
+  const merged = new Map();
+  for (const e of existing) merged.set(e.actionName + "@" + e.timestamp, e);
+  for (const e of msg.entries || []) merged.set(e.actionName + "@" + e.timestamp, e);
+  actionsByStore.set(
+    msg.store,
+    Array.from(merged.values()).sort((a, b) => a.timestamp - b.timestamp)
+  );
   renderActionLog();
 }
 
@@ -287,18 +315,25 @@ activateBtn.addEventListener("click", async () => {
   if (!key) return;
   licenseStatusEl.textContent = "Validating…";
   try {
-    const res = await fetch(LEMON_SQUEEZY_VALIDATE_URL, {
+    // /activate (not /validate) — this registers a license-key *instance*
+    // against Lemon Squeezy's own activation_limit for the product.
+    // Calling /validate alone never registers an instance, so
+    // activation_usage stays at 0 forever and the same key could be typed
+    // into an unlimited number of installs with no enforcement at all.
+    const res = await fetch(LEMON_SQUEEZY_ACTIVATE_URL, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" },
-      body: new URLSearchParams({ license_key: key }),
+      body: new URLSearchParams({ license_key: key, instance_name: "Zustand DevTools" }),
     });
     const data = await res.json();
-    if (data && data.valid) {
-      await chrome.storage.local.set({ zdtLicense: { valid: true, key } });
+    if (data && data.activated) {
+      await chrome.storage.local.set({
+        zdtLicense: { valid: true, key, instanceId: data.instance && data.instance.id },
+      });
       licenseStatusEl.textContent = "License activated.";
       setLicensedUI(true);
     } else {
-      licenseStatusEl.textContent = "That license key isn't valid.";
+      licenseStatusEl.textContent = (data && data.error) || "That license key isn't valid.";
     }
   } catch (e) {
     licenseStatusEl.textContent = "Couldn't reach the license server — check your connection.";
@@ -306,6 +341,27 @@ activateBtn.addEventListener("click", async () => {
 });
 
 renderComponents(); // show the empty state immediately, before any data arrives
+
+// A fresh top-level navigation of the inspected tab is a clean-slate signal
+// — without this, Action Log/Live State entries from whatever page was
+// open before would stay mixed in with an unrelated new page's entries for
+// as long as DevTools itself stays open, since actionsByStore/lastComponents
+// are otherwise only ever appended to, never reset. content-script.js's
+// ready-handshake (fired on injection into the new page) re-sends
+// ACTIVATE + REQUEST_HISTORY shortly after this, so a same-origin reload's
+// persisted history correctly repopulates; a different origin correctly
+// stays empty.
+if (chrome.devtools.network && chrome.devtools.network.onNavigated) {
+  chrome.devtools.network.onNavigated.addListener(() => {
+    actionsByStore.clear();
+    lastComponents = [];
+    statusEl.textContent = "Waiting for a React renderer on this page…";
+    dotEl.classList.remove("live");
+    dotEl.title = "Not connected";
+    renderComponents();
+    renderActionLog();
+  });
+}
 
 // ---- Port messages from background (relayed from the inspected page) ----
 port.onMessage.addListener((msg) => {
@@ -322,4 +378,13 @@ port.onMessage.addListener((msg) => {
   } else if (msg.type === "HISTORY") {
     recordHistory(msg);
   }
+});
+
+port.onDisconnect.addListener(() => {
+  // The service worker died/restarted or the tab closed — without this the
+  // panel would just silently freeze on stale data with no indication
+  // anything's wrong. Reopening DevTools reconnects a fresh port.
+  statusEl.textContent = "Disconnected — reopen DevTools to reconnect.";
+  dotEl.classList.remove("live");
+  dotEl.title = "Disconnected";
 });

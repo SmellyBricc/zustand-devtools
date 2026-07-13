@@ -139,6 +139,7 @@ https://github.com/SmellyBricc/zustand-devtools
 | Version | Date | Changes | Status |
 |---------|------|---------|--------|
 | 1.0.0 | 2026-07-13 | First public-release candidate: live Fiber-tree state inspector, search, DevTools theme matching, and the optional `zustand-devtools-bridge` action-log/time-travel tier with license gating. | Draft |
+| 1.0.1 | 2026-07-13 | Independent code review pass, all findings verified before fixing: React DevTools hook now chains instead of clobbering (fixes silent breakage when the real React DevTools extension is also installed); fixed a Fiber-walk bug that silently truncated any list/table with 40+ sibling components; license Activate now calls Lemon Squeezy's `/activate` endpoint (was calling `/validate`, which never registered an instance, so activation limits were never actually enforced); fixed a port-disconnect race that could cancel a just-opened panel connection; Action Log/Live State now reset on page navigation instead of mixing entries from an unrelated page; fixed a race where a live action arriving during a history-replay round trip could be silently dropped; component collapse state no longer resets on every live update. Bridge package bumped to 0.1.1 with matching fixes plus: default store names no longer collide when multiple stores omit `name`; corrupted `sessionStorage` no longer crashes `create()`; `Date`/`Map`/`Set`/`RegExp` fields display correctly instead of becoming `{}` (previously a time-travel jump would even overwrite a live one with an empty object); direct `useStore.setState(...)` calls are now tracked, not just actions defined on the store. | Draft |
 
 ## Review Notes
 
@@ -151,9 +152,18 @@ https://github.com/SmellyBricc/zustand-devtools
 - The Lemon Squeezy store, product, and checkout URL are live (see `MONETIZATION.md`) —
   identity verification and a payout method still need to be finished on Kuba's end before
   real (non-test-mode) purchases can be accepted.
-- The `zustand-devtools-bridge` package's npm publish is still pending (see
-  `MONETIZATION.md`) — the code is finished and public on GitHub, but not yet installable
-  via `npm install` until that's done.
+- `zustand-devtools-bridge` is published and installable (`npm install zustand-devtools-bridge`).
+- A very large array/object field (over the 50-item cap) or one nested more than 4 levels
+  deep loses the truncated portion permanently if you time-travel to that snapshot, since
+  the cap exists to bound message size and applies before the data is stored, not just
+  before display. Affects only fields that large; typical app state is unaffected.
+- `NaN`/`Infinity` values in state become `null` after a page reload (a `JSON.stringify`
+  limitation in the persistence path) — cosmetic, and only affects the persisted history
+  display, not the live app.
+- The bridge only authenticates control messages by same-window origin, not by sender
+  identity — consistent with how this whole category of devtools tooling works (the same
+  is true of Redux DevTools' architecture), but worth knowing if a page also runs untrusted
+  third-party scripts: don't ship `zustand-devtools-bridge` in a production bundle.
 
 ### Rejection History
 None yet — first submission pending.

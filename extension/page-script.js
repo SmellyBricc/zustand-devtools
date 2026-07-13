@@ -69,17 +69,29 @@
     if (t === "function" || t === "symbol") return undefined; // filtered out by caller
     if (t !== "object") return v;
     if (isReactElementLike(v)) return "[react element]";
-    try {
-      if (Array.isArray(v)) return v.slice(0, 20).map((x) => safeValue(x, depth + 1));
-      const out = {};
-      for (const k of Object.keys(v).slice(0, 20)) {
+    if (v instanceof Date) return v.toISOString();
+    if (v instanceof RegExp) return v.toString();
+    if (v instanceof Map) return safeValue(Array.from(v.entries()), depth + 1);
+    if (v instanceof Set) return safeValue(Array.from(v.values()), depth + 1);
+    if (Array.isArray(v)) {
+      try {
+        return v.slice(0, 50).map((x) => safeValue(x, depth + 1));
+      } catch (e) {
+        return "[unserializable]";
+      }
+    }
+    const out = {};
+    for (const k of Object.keys(v).slice(0, 50)) {
+      // Per-key, not around the whole loop — one throwing getter should only
+      // drop that one key, not discard every already-processed sibling key.
+      try {
         const sv = safeValue(v[k], depth + 1);
         if (sv !== undefined) out[k] = sv;
+      } catch (e) {
+        out[k] = "[unserializable]";
       }
-      return out;
-    } catch (e) {
-      return "[unserializable]";
     }
+    return out;
   }
 
   // Walk hook memoizedState linked list for a fiber, returning only the
@@ -119,7 +131,13 @@
       }
     }
     walk(fiber.child, depth + 1, out);
-    walk(fiber.sibling, depth + 1, out);
+    // Siblings are all children of the SAME parent — they sit at one tree
+    // level, not one deeper per sibling. Incrementing depth here was wrong:
+    // any list/table with 40+ rows (an extremely common shape) hit the
+    // depth cap purely from sibling count and got silently truncated, well
+    // before MAX_COMPONENTS was ever reached. depth only ever increases via
+    // .child, matching real nesting.
+    walk(fiber.sibling, depth, out);
   }
 
   // Only the fiber-walk itself is gated behind an active DevTools
@@ -181,18 +199,71 @@
     }
   });
 
-  window.__REACT_DEVTOOLS_GLOBAL_HOOK__ = {
-    supportsFiber: true,
-    renderers: new Map(),
-    inject: function (internals) {
-      rendererKnown = true;
-      rendererVersion = internals && internals.version;
-      if (active) announceRenderer();
-      return 1;
-    },
-    onCommitFiberRoot: function (rendererID, root) {
-      scheduleReport(root);
-    },
-    onCommitFiberUnmount: function () {},
-  };
+  function onInject(internals) {
+    rendererKnown = true;
+    rendererVersion = internals && internals.version;
+    if (active) announceRenderer();
+  }
+
+  function onCommit(root) {
+    scheduleReport(root);
+  }
+
+  // Real React DevTools (or another tool) may install a hook before OR
+  // after this script runs — MAIN-world injection order between two
+  // extensions isn't guaranteed either way. Clobbering the global outright
+  // would silently break whichever tool loses the race, for every page,
+  // for as long as both are enabled — extremely likely given the target
+  // audience (React developers) almost universally has the real React
+  // DevTools extension installed. Chain onto whatever hook object shows up,
+  // in either order, using a getter/setter on the global so a *later*
+  // assignment (e.g. the real extension installing after us) gets chained
+  // onto too, instead of silently replacing our callbacks.
+  function chainOnto(hookObj) {
+    if (!hookObj || hookObj.__ZDT_CHAINED__) return hookObj;
+    const originalInject = typeof hookObj.inject === "function" ? hookObj.inject.bind(hookObj) : null;
+    const originalOnCommitFiberRoot =
+      typeof hookObj.onCommitFiberRoot === "function" ? hookObj.onCommitFiberRoot.bind(hookObj) : null;
+    hookObj.__ZDT_CHAINED__ = true;
+    hookObj.inject = function (internals) {
+      onInject(internals);
+      return originalInject ? originalInject(internals) : 1;
+    };
+    hookObj.onCommitFiberRoot = function (rendererID, root, ...rest) {
+      onCommit(root);
+      if (originalOnCommitFiberRoot) originalOnCommitFiberRoot(rendererID, root, ...rest);
+    };
+    return hookObj;
+  }
+
+  let currentHook = chainOnto(
+    window.__REACT_DEVTOOLS_GLOBAL_HOOK__ || {
+      supportsFiber: true,
+      renderers: new Map(),
+      inject: function () {
+        return 1;
+      },
+      onCommitFiberRoot: function () {},
+      onCommitFiberUnmount: function () {},
+    }
+  );
+
+  try {
+    Object.defineProperty(window, "__REACT_DEVTOOLS_GLOBAL_HOOK__", {
+      configurable: true,
+      enumerable: true,
+      get() {
+        return currentHook;
+      },
+      set(next) {
+        currentHook = chainOnto(next) || currentHook;
+      },
+    });
+  } catch (e) {
+    // If defineProperty fails for any reason (e.g. a non-configurable
+    // descriptor already installed by something else), fall back to a
+    // plain assignment — loses protection against being overwritten
+    // later, but still functional for the common case.
+    window.__REACT_DEVTOOLS_GLOBAL_HOOK__ = currentHook;
+  }
 })();

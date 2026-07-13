@@ -1,11 +1,11 @@
 {
   "name": "zustand-devtools-bridge",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "One-line integration that unlocks a named action log, time-travel, and a unified multi-store timeline in the Zustand DevTools Chrome extension.",
   "type": "module",
   "main": "src/index.js",
   "exports": "./src/index.js",
-  "files": ["src"],
+  "files": ["src", "LICENSE"],
   "sideEffects": false,
   "peerDependencies": {
     "zustand": ">=4.0.0"

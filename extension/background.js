@@ -38,7 +38,12 @@ chrome.runtime.onConnect.addListener((port) => {
   });
 
   port.onDisconnect.addListener(() => {
-    if (panelPortsByTabId.get(tabId) === port) panelPortsByTabId.delete(tabId);
+    // Only deactivate if THIS port was still the tracked one for the tab —
+    // on a quick DevTools close/reopen, a new port can already be connected
+    // and stored by the time the old one's disconnect event fires. Sending
+    // DEACTIVATE unconditionally would cancel the brand-new connection.
+    if (panelPortsByTabId.get(tabId) !== port) return;
+    panelPortsByTabId.delete(tabId);
     notifyTab(tabId, { type: "DEACTIVATE" });
   });
 });
