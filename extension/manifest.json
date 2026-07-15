@@ -9,6 +9,7 @@
     "48": "icons/icon-48.png",
     "128": "icons/icon-128.png"
   },
+  "homepage_url": "https://github.com/SmellyBricc/zustand-devtools",
   "devtools_page": "devtools.html",
   "background": {
     "service_worker": "background.js"

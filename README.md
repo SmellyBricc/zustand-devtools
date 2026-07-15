@@ -1,7 +1,12 @@
 # Zustand DevTools
 
+[![npm](https://img.shields.io/npm/v/zustand-devtools-bridge?label=zustand-devtools-bridge)](https://www.npmjs.com/package/zustand-devtools-bridge)
+[![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
 A Chrome DevTools panel that shows live [Zustand](https://github.com/pmndrs/zustand) store
 state, with zero code changes to your app.
+
+**Website:** [smellybricc.github.io/zustand-devtools-site](https://smellybricc.github.io/zustand-devtools-site/)
 
 ## What it does
 

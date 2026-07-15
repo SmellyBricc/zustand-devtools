@@ -47,8 +47,8 @@ PERMISSIONS
 SUPPORT
 Found a bug or have a suggestion? Open an issue at the project's GitHub repository.
 
-Version 1.0.0 — first public release: live state inspector, search, theme matching, and
-the optional action-log/time-travel tier.
+First public release: live state inspector, search, theme matching, and the optional
+action-log/time-travel tier.
 
 **Category**
 Developer Tools
@@ -65,10 +65,10 @@ English
 | Asset | Dimensions | Status | Filename |
 |-------|-----------|--------|----------|
 | Store Icon | 128×128 PNG | ✅ Ready | `extension/icons/icon-128.png` |
-| Screenshot 1 | 1280×800 or 640×400 | ⬜ Not created | — |
-| Screenshot 2 | 1280×800 or 640×400 | ⬜ Not created | — |
-| Screenshot 3 | 1280×800 or 640×400 | ⬜ Not created | — |
-| Small Promo Tile | 440×280 | ⬜ Not created | — |
+| Screenshot 1 | 1280×800 or 640×400 | ⬜ Not created (see `test-app/SCREENSHOT-GUIDE.md`) | — |
+| Screenshot 2 | 1280×800 or 640×400 | ⬜ Not created (see `test-app/SCREENSHOT-GUIDE.md`) | — |
+| Screenshot 3 | 1280×800 or 640×400 | ⬜ Not created (see `test-app/SCREENSHOT-GUIDE.md`) | — |
+| Small Promo Tile | 440×280 | ✅ Ready | `store-assets/promo-tile-440x280.png` |
 
 ### Screenshot Notes (shot list — needs your real Chrome, not fabricated)
 
@@ -115,8 +115,7 @@ Lemon Squeezy's API, made only when the user explicitly enters a key.
 ## Privacy Policy
 
 **Privacy Policy URL**
-See `PRIVACY.md` in this repository — host its contents at a public URL (GitHub Pages or
-similar) before submitting, and paste that URL here.
+https://smellybricc.github.io/zustand-devtools-site/privacy.html
 
 ## Distribution
 
@@ -125,9 +124,11 @@ similar) before submitting, and paste that URL here.
 
 ## Developer Info
 
-**Publisher Name** — fill in before submitting
-**Contact Email** — fill in before submitting (must be monitored; Google sends policy
-notices here)
+**Publisher Name**
+SmellyBricc
+
+**Contact Email**
+kuba.opoczka@gmail.com
 **Support URL / Email**
 https://github.com/SmellyBricc/zustand-devtools/issues
 
@@ -164,6 +165,17 @@ https://github.com/SmellyBricc/zustand-devtools
   identity — consistent with how this whole category of devtools tooling works (the same
   is true of Redux DevTools' architecture), but worth knowing if a page also runs untrusted
   third-party scripts: don't ship `zustand-devtools-bridge` in a production bundle.
+
+### ⚠️ Pre-submission blocker — live-mode checkout URL
+
+The checkout URL hardcoded in `extension/panel.js` (`LEMON_SQUEEZY_CHECKOUT_URL`) points
+at the **test-mode** product. Lemon Squeezy test-mode products do not carry over to live
+mode — after activating the store, use the product's "Copy to Live Mode" menu option; the
+copied product gets a **new ID and therefore a new checkout URL**. That new URL must be
+swapped into `panel.js` and the zip rebuilt (`./package-extension.sh`) **before**
+submitting, or the shipped Buy button will point at a checkout that cannot take real
+payments. Test-mode license keys also won't validate against the live product — do one
+real (live-mode) purchase after activation to confirm the Activate flow end-to-end.
 
 ### Rejection History
 None yet — first submission pending.
