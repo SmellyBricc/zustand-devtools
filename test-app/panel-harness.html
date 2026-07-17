@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Panel harness — real bridge + real panel, mocked chrome</title>
+<link rel="stylesheet" href="../extension/panel.css" />
+<style>
+  #harness-bar {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+    display: flex; gap: 6px; flex-wrap: wrap; align-items: center;
+    background: #14151c; color: #ddd; padding: 8px 10px; font: 12px monospace;
+  }
+  #harness-bar button { font: 11px monospace; padding: 3px 8px; cursor: pointer; }
+  #panel-root { padding-bottom: 90px; }
+  #perf-out { white-space: pre; }
+</style>
+</head>
+<body>
+<div id="panel-root">Loading panel…</div>
+<div id="harness-bar">
+  <button id="h-add">addItem</button>
+  <button id="h-deep">mutateDeep</button>
+  <button id="h-login">toggleLogin</button>
+  <button id="h-burst">burst 1000 (perf)</button>
+  <button id="h-import">simulate import</button>
+  <button id="h-import-bad">import malformed</button>
+  <span id="perf-out"></span>
+</div>
+
+<script type="module">
+// ---- 1. chrome mock (must exist before panel module loads) ----------------
+const portListeners = [];
+// Back the storage mock with sessionStorage so a page reload exercises the
+// real persisted-session boot path (view-only rehydration).
+const storage = JSON.parse(sessionStorage.getItem("harness-chrome-storage") || "{}");
+const persistMock = () => sessionStorage.setItem("harness-chrome-storage", JSON.stringify(storage));
+window.__panelPort = null;
+window.chrome = {
+  devtools: null, // panel detects non-devtools harness mode
+  runtime: {
+    connect() {
+      const port = {
+        postMessage(cmd) {
+          // panel -> "background" -> page: deliver as a control MessageEvent
+          window.dispatchEvent(new MessageEvent("message", {
+            data: { source: "zustand-devtools-control", ...cmd },
+            source: window, origin: location.origin,
+          }));
+        },
+        onMessage: { addListener: (fn) => portListeners.push(fn) },
+        onDisconnect: { addListener: () => {} },
+      };
+      window.__panelPort = port;
+      return port;
+    },
+  },
+  storage: {
+    local: {
+      get(keys, cb) { cb(JSON.parse(JSON.stringify(storage))); },
+      set(obj, cb) { Object.assign(storage, JSON.parse(JSON.stringify(obj))); persistMock(); cb && cb(); },
+    },
+  },
+  tabs: { create: ({ url }) => window.open(url, "_blank") },
+};
+// page (bridge) -> "content script" -> panel port
+window.addEventListener("message", (ev) => {
+  const d = ev.data;
+  if (d && d.source === "zustand-devtools-bridge") {
+    for (const fn of portListeners) fn(d);
+  }
+});
+
+// ---- 2. real panel markup + module ----------------------------------------
+const html = await (await fetch("../extension/panel.html")).text();
+const doc = new DOMParser().parseFromString(html, "text/html");
+doc.querySelectorAll("script").forEach((s) => s.remove());
+document.getElementById("panel-root").innerHTML = doc.body.innerHTML;
+
+// ---- 3. real bridge + real stores ------------------------------------------
+const { createStore } = await import("https://esm.sh/zustand@5.0.14/vanilla");
+const bridgeMod = await import("../bridge/dist/index.js");
+const { withDevtoolsBridge } = bridgeMod;
+window.__bridgeMod = bridgeMod; // harness driving (e.g. __setRawCapForTests)
+
+const cart = createStore(withDevtoolsBridge((set, get) => ({
+  items: [],
+  total: 0,
+  meta: { created: new Date("2026-01-01T00:00:00Z"), tags: new Set(["a"]), lookup: new Map([["k", 1]]) },
+  deep: { a: { b: { c: { d: { value: 0 } } } } },
+  auth: { accessToken: "SECRET-TOKEN", user: "ada" },
+  addItem: () => set((s) => ({ items: [...s.items, { sku: "sku-" + s.items.length, quantity: 1 }], total: s.total + 10 }), false, "addItem"),
+  mutateDeep: () => set((s) => ({ deep: { a: { b: { c: { d: { value: s.deep.a.b.c.d.value + 1 } } } } } }), false, "mutateDeep"),
+}), { name: "cart", redact: ["auth.accessToken"] }));
+
+const user = createStore(withDevtoolsBridge((set) => ({
+  name: "Ada", loggedIn: false,
+  toggleLogin: () => set((s) => ({ loggedIn: !s.loggedIn }), false, "toggleLogin"),
+}), { name: "user" }));
+
+await import("../extension/panel/main.js");
+window.__stores = { cart, user };
+
+// ---- 4. harness controls + perf --------------------------------------------
+const $ = (id) => document.getElementById(id);
+$("h-add").onclick = () => cart.getState().addItem();
+$("h-deep").onclick = () => cart.getState().mutateDeep();
+$("h-login").onclick = () => user.getState().toggleLogin();
+
+$("h-burst").onclick = () => {
+  const t0 = performance.now();
+  for (let i = 0; i < 1000; i++) cart.getState().addItem();
+  const ms = performance.now() - t0;
+  window.__lastBurst = ms;
+  $("perf-out").textContent = `burst: ${ms.toFixed(1)}ms total, ${(ms / 1000).toFixed(3)}ms/action`;
+};
+
+function bundleFixture(entries = 3, mutate) {
+  const b = {
+    kind: "zustand-devtools-trace", schemaVersion: 1,
+    extensionVersion: "1.1.0", bridgeVersion: "0.2.0", exportedAt: new Date().toISOString(),
+    includesState: true,
+    session: { traceId: "trc_imported", name: "from-teammate", startedAt: Date.now() - 5000, stoppedAt: Date.now(), entryCount: entries },
+    stores: [{ storeId: "st_x", storeName: "cart" }],
+    entries: Array.from({ length: entries }, (_, i) => ({
+      actionId: "act_i" + i, storeId: "st_x", storeName: "cart", actionName: i ? "addItem" : "@@INIT",
+      timestamp: Date.now() - 4000 + i * 500,
+      callSite: { label: "addItem", url: "http://localhost:5173/src/cart.ts", line: 42 + i, column: 9 },
+      state: { items: Array.from({ length: i }, (_, j) => ({ sku: "s" + j })), total: i * 10 },
+      bookmarked: i === 1, note: i === 1 ? "bug starts here" : undefined, replaySafe: false,
+    })),
+  };
+  if (mutate) mutate(b);
+  return b;
+}
+
+function feedImport(obj) {
+  const file = new File([JSON.stringify(obj)], "trace.json", { type: "application/json" });
+  const dt = new DataTransfer();
+  dt.items.add(file);
+  const input = $("import-input");
+  input.files = dt.files;
+  input.dispatchEvent(new Event("change", { bubbles: true }));
+}
+$("h-import").onclick = () => feedImport(bundleFixture(6));
+$("h-import-bad").onclick = () => feedImport(bundleFixture(2, (b) => { b.schemaVersion = 99; }));
+
+window.__harnessReady = true;
+</script>
+</body>
+</html>

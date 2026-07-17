@@ -5,3 +5,10 @@ test-app/SCREENSHOT-GUIDE.md
 # Build artifacts
 *.zip
 .DS_Store
+
+# Build/test tooling (v1.1.0)
+node_modules/
+bridge/dist/
+
+# Browser-pane tooling artifact
+.playwright-cli/

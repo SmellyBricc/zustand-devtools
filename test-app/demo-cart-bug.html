@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Acme Storefront — demo fixture</title>
+    <!-- Recording fixture for docs/lemon-squeezy-demo-recording-guide.md.
+         Loads the REAL page-script and the REAL built bridge. All data is
+         synthetic. The "+1 keyboard qty" action contains a DELIBERATE bug:
+         it adds the lamp's price (39) to the total instead of the
+         keyboard's (129). "Recalculate total" fixes it. -->
+    <script src="../extension/page-script.js"></script>
+    <style>
+      :root {
+        --ink: #1c1e26; --dim: #6a6f7f; --line: #e3e5ec; --bg: #f6f7fa;
+        --card: #ffffff; --accent: #4f46e5; --bad: #b42318; --ok: #067647;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0; background: var(--bg); color: var(--ink);
+        font: 15px/1.5 -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+        display: grid; place-items: start center; padding: 48px 20px;
+      }
+      .card {
+        width: 100%; max-width: 460px; background: var(--card);
+        border: 1px solid var(--line); border-radius: 12px; padding: 24px 26px;
+      }
+      h1 { font-size: 19px; margin: 0; letter-spacing: -0.01em; }
+      .who { color: var(--dim); font-size: 13px; margin: 2px 0 18px; }
+      .row {
+        display: flex; align-items: center; gap: 10px;
+        border-top: 1px solid var(--line); padding: 10px 0; font-size: 14.5px;
+      }
+      .row .name { flex: 1; }
+      .row .qty { color: var(--dim); font-variant-numeric: tabular-nums; }
+      .row .price { width: 64px; text-align: right; font-variant-numeric: tabular-nums; }
+      .total {
+        display: flex; justify-content: space-between; border-top: 2px solid var(--ink);
+        margin-top: 4px; padding-top: 10px; font-weight: 600; font-size: 16px;
+      }
+      .controls { display: grid; gap: 8px; margin-top: 20px; }
+      .controls button {
+        font: 600 13.5px/1 inherit; color: var(--ink); background: var(--bg);
+        border: 1px solid var(--line); border-radius: 8px; padding: 11px 14px;
+        cursor: pointer; text-align: left;
+      }
+      .controls button:hover { border-color: var(--accent); }
+      .controls button b { color: var(--accent); }
+      .controls button.danger b { color: var(--bad); }
+      .empty { color: var(--dim); font-size: 14px; padding: 12px 0; }
+      .note { color: var(--dim); font-size: 12px; margin-top: 16px; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>Acme Storefront</h1>
+      <p class="who">signed in: <span id="who">nobody</span></p>
+      <div id="items"></div>
+      <div class="total"><span>Total</span><span id="total">€0</span></div>
+      <div class="controls">
+        <button id="add-lamp" type="button"><b>Add</b> desk lamp · €39</button>
+        <button id="add-kbd" type="button"><b>Add</b> mech keyboard · €129</button>
+        <button id="inc-kbd" type="button" class="danger"><b>+1</b> keyboard quantity (this one has the bug)</button>
+        <button id="recalc" type="button"><b>Fix</b> recalculate total</button>
+        <button id="login" type="button"><b>Log</b> in / out</button>
+      </div>
+      <p class="note">Demo fixture with synthetic data only. The quantity button
+      deliberately adds the wrong price to the total.</p>
+    </div>
+
+    <script type="module">
+      import React from "https://esm.sh/react@19.1.0";
+      import { createRoot } from "https://esm.sh/react-dom@19.1.0/client?deps=react@19.1.0";
+      import { create } from "https://esm.sh/zustand@5.0.14?deps=react@19.1.0";
+      import { withDevtoolsBridge } from "../bridge/dist/index.js";
+
+      // React is loaded so the panel's renderer detection and Component Hooks
+      // view behave exactly as on a real app; the storefront card above is
+      // driven by store subscriptions for a stable, recording-friendly DOM.
+      const LAMP = { sku: "lamp-01", name: "Desk lamp", price: 39 };
+      const KBD = { sku: "kbd-01", name: "Mech keyboard", price: 129 };
+
+      const useCartStore = create(
+        withDevtoolsBridge(
+          (set) => ({
+            items: [],
+            total: 0,
+            addLamp: () =>
+              set(
+                (s) => ({
+                  items: [...s.items, { ...LAMP, quantity: 1 }],
+                  total: s.total + LAMP.price,
+                }),
+                false,
+                "addLamp"
+              ),
+            addKeyboard: () =>
+              set(
+                (s) => ({
+                  items: [...s.items, { ...KBD, quantity: 1 }],
+                  total: s.total + KBD.price,
+                }),
+                false,
+                "addKeyboard"
+              ),
+            // THE DELIBERATE BUG: bumps items[1].quantity but adds the price
+            // of items[0] (the lamp, €39) to the total instead of the
+            // keyboard's €129. The trace shows items[1].quantity change with
+            // a total that is now €90 short.
+            increaseKeyboardQty: () =>
+              set(
+                (s) => {
+                  if (s.items.length < 2) return s;
+                  const items = s.items.map((it, i) =>
+                    i === 1 ? { ...it, quantity: it.quantity + 1 } : it
+                  );
+                  return { items, total: s.total + s.items[0].price };
+                },
+                false,
+                "increaseKeyboardQty"
+              ),
+            recalcTotal: () =>
+              set(
+                (s) => ({
+                  total: s.items.reduce((sum, it) => sum + it.price * it.quantity, 0),
+                }),
+                false,
+                "recalcTotal"
+              ),
+          }),
+          { name: "cart" }
+        )
+      );
+
+      const useAuthStore = create(
+        withDevtoolsBridge(
+          (set) => ({
+            user: null,
+            loggedIn: false,
+            accessToken: null,
+            login: () =>
+              set(
+                {
+                  user: "Ada Example",
+                  loggedIn: true,
+                  accessToken: "demo-token-3f9a1c-SYNTHETIC",
+                },
+                false,
+                "login"
+              ),
+            logout: () =>
+              set({ user: null, loggedIn: false, accessToken: null }, false, "logout"),
+          }),
+          // accessToken is already covered by the default redaction keys
+          // ("token" substring); listed explicitly so the recording can show
+          // the option itself.
+          { name: "auth", redact: ["accessToken"] }
+        )
+      );
+
+      // Mount an (empty) React root so a renderer is present for detection.
+      createRoot(document.createElement("div")).render(React.createElement("i"));
+
+      // --- storefront card rendering ---------------------------------------
+      const $ = (id) => document.getElementById(id);
+      function renderCart() {
+        const { items, total } = useCartStore.getState();
+        $("items").innerHTML = "";
+        if (!items.length) {
+          const p = document.createElement("p");
+          p.className = "empty";
+          p.textContent = "Cart is empty.";
+          $("items").appendChild(p);
+        }
+        for (const it of items) {
+          const row = document.createElement("div");
+          row.className = "row";
+          const name = document.createElement("span");
+          name.className = "name";
+          name.textContent = it.name;
+          const qty = document.createElement("span");
+          qty.className = "qty";
+          qty.textContent = "× " + it.quantity;
+          const price = document.createElement("span");
+          price.className = "price";
+          price.textContent = "€" + it.price * it.quantity;
+          row.append(name, qty, price);
+          $("items").appendChild(row);
+        }
+        $("total").textContent = "€" + total;
+      }
+      function renderAuth() {
+        const { user, loggedIn } = useAuthStore.getState();
+        $("who").textContent = loggedIn ? user : "nobody";
+      }
+      useCartStore.subscribe(renderCart);
+      useAuthStore.subscribe(renderAuth);
+      renderCart();
+      renderAuth();
+
+      $("add-lamp").onclick = () => useCartStore.getState().addLamp();
+      $("add-kbd").onclick = () => useCartStore.getState().addKeyboard();
+      $("inc-kbd").onclick = () => useCartStore.getState().increaseKeyboardQty();
+      $("recalc").onclick = () => useCartStore.getState().recalcTotal();
+      $("login").onclick = () => {
+        const s = useAuthStore.getState();
+        s.loggedIn ? s.logout() : s.login();
+      };
+
+      window.__stores = { cart: useCartStore, auth: useAuthStore };
+      window.__fixtureReady = true;
+    </script>
+  </body>
+</html>

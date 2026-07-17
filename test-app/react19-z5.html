@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Matrix fixture: React 19 + Zustand 5 + bridge 0.2</title>
+    <!-- Loads the REAL page-script (Component Hooks walker) and the REAL
+         built bridge, capturing everything both post. -->
+    <script src="../extension/page-script.js"></script>
+    <script>
+      window.__pageMsgs = [];
+      window.addEventListener("message", (e) => {
+        if (e.source !== window || !e.data) return;
+        if (e.data.source === "zustand-devtools-page" || e.data.source === "zustand-devtools-bridge") {
+          window.__pageMsgs.push(e.data);
+        }
+      });
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module">
+      import React from "https://esm.sh/react@19.1.0";
+      import { createRoot } from "https://esm.sh/react-dom@19.1.0/client?deps=react@19.1.0";
+      import { create } from "https://esm.sh/zustand@5.0.14?deps=react@19.1.0";
+      import { withDevtoolsBridge } from "../bridge/dist/index.js";
+
+      const useCounter = create(
+        withDevtoolsBridge(
+          (set) => ({
+            count: 0,
+            when: new Date("2026-05-05T05:05:05Z"),
+            increment: () => set((s) => ({ count: s.count + 1 }), false, "increment"),
+          }),
+          { name: "counter19" }
+        )
+      );
+
+      function App() {
+        const count = useCounter((s) => s.count);
+        const increment = useCounter((s) => s.increment);
+        return React.createElement(
+          "div",
+          null,
+          React.createElement("h1", null, "React 19 + Zustand 5"),
+          React.createElement("p", { id: "count" }, "Count: ", count),
+          React.createElement("button", { id: "inc", onClick: increment }, "+")
+        );
+      }
+      createRoot(document.getElementById("root")).render(React.createElement(App));
+      window.__fixtureReady = true;
+    </script>
+  </body>
+</html>

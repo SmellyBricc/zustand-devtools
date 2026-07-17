@@ -16,9 +16,9 @@
     <div id="root"></div>
     <script type="module">
       import { create } from "https://esm.sh/zustand@4.5.7";
-      // Loads the REAL, unmodified bridge/src/index.js — verifying the
-      // actual shipped source, not a re-implemented stand-in.
-      import { withDevtoolsBridge } from "../bridge/src/index.js";
+      // Loads the REAL built bridge — verifying the actual shipped file
+      // (dist output of bridge/src/index.ts), not a re-implemented stand-in.
+      import { withDevtoolsBridge } from "../bridge/dist/index.js";
 
       window.useCartStore = create(
         withDevtoolsBridge(
