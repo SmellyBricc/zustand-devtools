@@ -1,6 +1,6 @@
 # Chrome Web Store Listing — Zustand DevTools
 
-> Last Updated: 2026-07-13
+> Last Updated: 2026-07-16
 
 ## Store Listing
 
@@ -8,38 +8,50 @@
 Zustand DevTools
 
 **Short Description**
-Live Zustand state in DevTools, plus an optional action log and time-travel.
+Registered-store inspector, safe time-travel and Pro Trace Sessions (deep diffs, call-sites, shareable traces) for Zustand.
 
 **Detailed Description**
 
-See your Zustand store state update live, right inside Chrome DevTools — no code changes
-to your app required.
+A dedicated Zustand panel for Chrome DevTools. Register a store with one line of the
+zustand-devtools-bridge package for an accurate live Stores view, a free cross-store
+Timeline, and time-travel that never corrupts your state. An experimental zero-setup
+Component Hooks view is included for quick looks (its values are not guaranteed to come
+from Zustand). The Pro Trace Sessions workflow records a bug reproduction with deep
+path-level diffs and source call-sites, and exports a debugging session your teammate
+can inspect without reproducing the bug.
 
 FEATURES
-• Live component state — a dedicated DevTools panel shows every component's current
-  Zustand-selected values, updating as you interact with your app.
-• Search — filter the live list by component name when a page has many components.
-• Action log & time-travel (optional) — add the companion package to a store to see a
-  named history of every state change and jump back to any past state with one click,
-  across all your stores in a single unified timeline.
+• Stores (free) — an accurate live view of every store registered through the one-line
+  zustand-devtools-bridge package, with stable identities across hot reloads.
+• Timeline (free) — a named action history across all registered stores, with search and
+  SAFE time-travel: the original in-memory state is restored by ID, so Dates, Maps, Sets
+  and your action functions survive. Lossy copies are never restored.
+• Component Hooks (experimental, free) — a zero-setup view of hook values found in React
+  components. Honestly labelled: values are not guaranteed to come from Zustand.
+• Trace Sessions (Pro, three full previews included) — record while reproducing a bug:
+  deep path-level diffs (cart.items[3].quantity), best-effort source call-sites you can
+  click to open in Sources, filters, comparison of any two moments, bookmarks/notes, and
+  export/import of a redacted, versioned debugging session (view-only, validated).
 • Matches your DevTools theme — light or dark, automatically.
 
 HOW TO USE
-1. Open Chrome DevTools (F12) on any page using Zustand.
-2. Click the "Zustand" tab in DevTools.
-3. Interact with the page — component state appears live, no setup required.
-4. For the optional action log and time-travel, add the companion npm package to a store
-   and pass it a name — see the package's README for the one-line setup.
+1. Add the bridge to a store (one line): create(withDevtoolsBridge(creator, { name: 'cart' })).
+2. Open Chrome DevTools (F12) and click the "Zustand" tab — Stores and Timeline are live.
+3. Press Start Trace, reproduce your bug, press Stop — inspect diffs and call-sites,
+   compare any two moments, export the session. Three full preview sessions are free;
+   Pro unlocks unlimited ones.
+4. No store registered yet? The experimental Component Hooks tab shows React hook values
+   with zero setup (not guaranteed to be Zustand state).
 
 PRIVACY
-This extension does not collect, store, or transmit any personal data or browsing
-history. Component state it reads stays on your device and is only ever sent to your own
-open DevTools panel. The only network request it ever makes is triggered by you, when you
-paste a license key to validate the optional paid tier.
+This extension processes component state locally so it can display it in your own open
+DevTools panel. That state is not sent off your device. The only outbound network request
+is triggered by you when you paste a license key; the key is sent to Lemon Squeezy to
+activate the optional paid tier.
 
 PERMISSIONS
-• "storage" — remembers your validated license key locally, so you don't have to
-  re-enter it every time you open DevTools.
+• "storage" — keeps your recent Trace Sessions, the free-preview counter, and your
+  validated license record locally (saved sessions are view-only).
 • Access to page content — needed to detect a React/Zustand renderer and read component
   state, but only becomes active once you've opened DevTools and switched to the Zustand
   panel for that tab; otherwise it does nothing on that page.
@@ -47,15 +59,16 @@ PERMISSIONS
 SUPPORT
 Found a bug or have a suggestion? Open an issue at the project's GitHub repository.
 
-First public release: live state inspector, search, theme matching, and the optional
-action-log/time-travel tier.
+Local-first by design: state, traces and exports stay on your machine; imported trace
+files are validated and opened view-only.
 
 **Category**
 Developer Tools
 
 **Single Purpose**
-Shows live Zustand store state in a Chrome DevTools panel, with an optional action log
-and time-travel debugging.
+Inspect and debug Zustand store state in a Chrome DevTools panel: live registered-store
+view, action timeline with safe time-travel, and recordable Trace Sessions with diffs,
+call-sites and local export/import.
 
 **Primary Language**
 English
@@ -72,40 +85,44 @@ English
 
 ### Screenshot Notes (shot list — needs your real Chrome, not fabricated)
 
-1. **Live State tab** on a real app: DevTools open, Zustand panel active, a couple of
-   components expanded showing live values, search box visible.
-2. **Action Log tab**, licensed, showing a unified multi-store timeline with a few named
-   actions (e.g. "addItem", "checkout") and timestamps.
-3. **Time-travel in action**: cursor on a past log entry, or a before/after pair showing
-   the app's UI reflecting a restored past state.
+1. **Stores tab** on a real app: DevTools open, two registered stores with live values
+   (include a redacted field), status bar showing the store count.
+2. **Trace Sessions tab** with a stopped session: entry list plus detail pane showing
+   changed paths and a call-site.
+3. **Time-travel in action**: cursor on a Timeline entry's "Jump here", or a
+   before/after pair showing the app's UI reflecting a restored past state (plus one
+   view-only entry showing the honest "Replay unavailable" state).
 4. Optional: the paywall/"Buy license" state, to show the free vs. paid boundary clearly.
 
 ## Permissions Justification
 
 | Permission | Type | Justification |
 |------------|------|----------------|
-| `storage` | permissions | Stores the user's validated license key locally so the paid Action Log tier doesn't need to re-validate on every DevTools open. |
-| `https://api.lemonsqueezy.com/*` | host_permissions | Only contacted when the user pastes a license key into the Action Log tab's "Activate" field, to validate it against Lemon Squeezy's public License API. No other data is sent. |
+| `storage` | permissions | Stores recent Trace Sessions, the preview counter, and the validated license record locally so the Pro tier doesn't re-validate on every DevTools open. |
+| `https://api.lemonsqueezy.com/*` | host_permissions | Only contacted when the user pastes a license key into the Trace Sessions tab's "Activate" field, to activate it through Lemon Squeezy's public License API. No other data is sent. |
 | `<all_urls>` (content scripts) | content_scripts matches | Needed to install a lightweight React-renderer hook before React loads on any page the developer might inspect, since Zustand apps can run on any site. The hook stays inert — no data is read or sent — unless the developer has DevTools open with the Zustand panel active for that tab. |
 
 ## Privacy & Data Use
 
-### Data Collection
+### Data Handling
 
-**Does the extension collect user data?** No
+Chrome's disclosure rules include data processed locally, not only data sent to a server.
+The extension therefore handles website content (component state) locally to provide its
+single debugging purpose. It does not transmit that state off-device. If the user enters
+a paid-tier license key, the key is sent to Lemon Squeezy's License API for activation and
+stored locally in `chrome.storage.local`.
 
-This extension does not collect, store, or transmit personal data, browsing history, or
-website content to any server. Component state read by the Fiber-walker is relayed only
-to the user's own open DevTools panel via the browser's internal messaging — it never
-leaves the device. The only outbound network request is a license-key validation call to
-Lemon Squeezy's API, made only when the user explicitly enters a key.
-
-| Data Type | Collected? | Transmitted Off-Device? | Purpose | Shared with Third Parties? |
+| Data Type | Handled? | Transmitted Off-Device? | Purpose | Shared with Third Parties? |
 |-----------|-----------|--------------------------|---------|------------------------------|
 | Personally identifiable info | No | No | — | No |
 | Web history | No | No | — | No |
-| Website content | No (read locally only) | No | Displayed in your own DevTools panel | No |
-| Authentication info (license key) | Only if entered | Yes, to Lemon Squeezy only | Validate a purchased license | No |
+| Website content | Yes, locally while the panel is active | No | Displayed in your own DevTools panel | No |
+| Authentication info (license key) | Only if entered | Yes, to Lemon Squeezy only | Activate a purchased license | Lemon Squeezy processes the activation request |
+
+In the Chrome Web Store data-use form, disclose the local handling of **Website content**
+and the optional handling/transmission of **Authentication information**. Make clear that
+website content is processed locally only and is not collected by the developer or sent
+off-device.
 
 ### Data Use Certification
 - [x] Data is NOT sold to third parties
@@ -139,21 +156,23 @@ https://github.com/SmellyBricc/zustand-devtools
 
 | Version | Date | Changes | Status |
 |---------|------|---------|--------|
-| 1.0.0 | 2026-07-13 | First public-release candidate: live Fiber-tree state inspector, search, DevTools theme matching, and the optional `zustand-devtools-bridge` action-log/time-travel tier with license gating. | Draft |
+| 1.1.0 | 2026-07-16 | Accurate-registration rework: explicit store registration with stable store/action/session IDs (protocol v2); Fiber view moved to "Component Hooks (experimental)" with honest labelling; time-travel is now ID-based raw-state restoration (never restores sanitized copies; view-only for pre-reload entries); new Trace Sessions Pro tier (call-sites, deep diffs, compare, export/import, redaction, 3 free previews); bridge 0.2.0 with TypeScript, enabled flag, redaction. | Draft |
 | 1.0.1 | 2026-07-13 | Independent code review pass, all findings verified before fixing: React DevTools hook now chains instead of clobbering (fixes silent breakage when the real React DevTools extension is also installed); fixed a Fiber-walk bug that silently truncated any list/table with 40+ sibling components; license Activate now calls Lemon Squeezy's `/activate` endpoint (was calling `/validate`, which never registered an instance, so activation limits were never actually enforced); fixed a port-disconnect race that could cancel a just-opened panel connection; Action Log/Live State now reset on page navigation instead of mixing entries from an unrelated page; fixed a race where a live action arriving during a history-replay round trip could be silently dropped; component collapse state no longer resets on every live update. Bridge package bumped to 0.1.1 with matching fixes plus: default store names no longer collide when multiple stores omit `name`; corrupted `sessionStorage` no longer crashes `create()`; `Date`/`Map`/`Set`/`RegExp` fields display correctly instead of becoming `{}` (previously a time-travel jump would even overwrite a live one with an empty object); direct `useStore.setState(...)` calls are now tracked, not just actions defined on the store. | Draft |
+| 1.0.0 | 2026-07-13 | First public-release candidate: live Fiber-tree state inspector, search, DevTools theme matching, and the optional `zustand-devtools-bridge` action-log/time-travel tier with license gating. | Draft |
 
 ## Review Notes
 
 ### Known Issues / Limitations
 - The Fiber-walker shows whatever a component's hooks currently hold — it has no action
   history or time-travel of its own; that's what the optional bridge package adds.
-- Time-travel restores data fields via a merge, not a full state replace, since only
-  serializable data (not functions) ever crosses the messaging boundary — restoring a very
-  old snapshot won't remove object keys added after that snapshot.
-- The Lemon Squeezy store, product, and checkout URL are live (see `MONETIZATION.md`) —
-  identity verification and a payout method still need to be finished on Kuba's end before
-  real (non-test-mode) purchases can be accepted.
-- `zustand-devtools-bridge` is published and installable (`npm install zustand-devtools-bridge`).
+- Time-travel restores the original in-memory state object by ID (full replace, functions
+  included). Entries whose raw state the page no longer holds — evicted, pre-reload,
+  persisted, or imported — are view-only, stated in the UI before you click.
+- The Lemon Squeezy store is TEST MODE ONLY: the account is awaiting approval, the
+  existing product is a test-mode product (old test name "Zustand DevTools — Action Log &
+  Time-Travel", to be manually renamed to "Zustand DevTools Pro — Trace Sessions"), and
+  no real payments are accepted. See `MONETIZATION.md` and `docs/lemon-squeezy-review.md`.
+- npm currently serves `zustand-devtools-bridge` **0.1.1** (old protocol). The 0.2.0 the extension requires is built and tested locally but NOT yet published — publish it before submitting the extension.
 - A very large array/object field (over the 50-item cap) or one nested more than 4 levels
   deep loses the truncated portion permanently if you time-travel to that snapshot, since
   the cap exists to bound message size and applies before the data is stored, not just
@@ -168,14 +187,27 @@ https://github.com/SmellyBricc/zustand-devtools
 
 ### ⚠️ Pre-submission blocker — live-mode checkout URL
 
-The checkout URL hardcoded in `extension/panel.js` (`LEMON_SQUEEZY_CHECKOUT_URL`) points
+The checkout URL in `extension/panel/license-config.js` (`LICENSE_CONFIG.checkoutUrl`) points
 at the **test-mode** product. Lemon Squeezy test-mode products do not carry over to live
 mode — after activating the store, use the product's "Copy to Live Mode" menu option; the
 copied product gets a **new ID and therefore a new checkout URL**. That new URL must be
-swapped into `panel.js` and the zip rebuilt (`./package-extension.sh`) **before**
+swapped into `license-config.js` (with the live store/product/variant IDs, and
+`mode: "live"`) and the zip rebuilt (`./package-extension.sh`) **before**
 submitting, or the shipped Buy button will point at a checkout that cannot take real
 payments. Test-mode license keys also won't validate against the live product — do one
 real (live-mode) purchase after activation to confirm the Activate flow end-to-end.
+
+### ⚠️ Pre-submission blocker — developer account and disclosure details
+
+- Chrome says items that offer paid functionality must include a physical address in the
+  developer account. Decide which valid business/contact address you will use before
+  submitting.
+- Do not select a blanket "no user data handled" answer. The extension processes website
+  content locally and sends a user-entered license key to Lemon Squeezy, as described
+  above. The dashboard answers, this listing, and `PRIVACY.md` must agree.
+- Replace the current publisher name if desired before launch. `SmellyBricc` is memorable,
+  but a personal name or product/company name may create more trust for a paid developer
+  tool.
 
 ### Rejection History
 None yet — first submission pending.
