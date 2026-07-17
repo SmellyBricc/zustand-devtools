@@ -19,9 +19,9 @@ Lemon Squeezy's License API (planned allowance: five device activations, no expi
 No physical goods, services, consulting, regulated goods, or prohibited content.
 
 **Status:** legitimate product in pre-launch testing. The Lemon Squeezy account is
-awaiting approval; the existing product is test-mode only; the Chrome Web Store
-submission is in progress (the extension is not publicly installable yet); no real
-payments are being accepted. Live licensing is NOT claimed to work until the store is
+awaiting approval; the existing product is test-mode only; Chrome Web Store launch
+preparation is in progress but the extension has not been submitted yet (it is not
+publicly installable); no real payments are being accepted. Live licensing is NOT claimed to work until the store is
 approved and one real live-mode purchase has been tested end-to-end.
 
 ## Exact dashboard settings (Kuba must apply these manually)
@@ -66,7 +66,8 @@ purchase before any public launch.
 > extension, which activates it via the Lemon Squeezy License API (up to five device
 > activations). The product is completely digital: no physical goods, no consulting or
 > services, no regulated goods, and no prohibited content. It is currently in
-> pre-launch testing — my Chrome Web Store submission is in progress and I am not
+> pre-launch testing — I am preparing my Chrome Web Store submission (not yet
+> submitted) and I am not
 > accepting real payments until this review completes and I have verified one live-mode
 > purchase end-to-end.
 >
@@ -91,7 +92,8 @@ extension, bridge, and 96-test automated suite; the published npm package
 (`zustand-devtools-bridge` 0.1.1; 0.2.0 is built/tested locally, publishing before the
 extension ships); the privacy policy and terms pages.
 
-**Not yet available (honestly):** a public Chrome Web Store listing (submission in
-progress); a live checkout (test-mode only, pending this review); a public demo video
-(recording script prepared in `docs/lemon-squeezy-demo-recording-guide.md` — available
-on request); live-mode license activation proof (blocked on store approval).
+**Not yet available (honestly):** a public Chrome Web Store listing (launch preparation
+is in progress; the extension has not been submitted yet); a live checkout (test-mode
+only, pending this review); a public demo video (recording script prepared in
+`docs/lemon-squeezy-demo-recording-guide.md` — available on request); live-mode license
+activation proof (blocked on store approval).

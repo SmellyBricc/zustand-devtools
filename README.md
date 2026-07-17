@@ -10,34 +10,42 @@ state, with zero code changes to your app.
 
 ## What it does
 
-Open Chrome DevTools on any page using Zustand, click the "Zustand" tab, and see every
-component's current store-selected values update live as you interact with the page — no
-setup, no imports, nothing added to your app.
+Register a store with one line and get an accurate live Stores view, a free action
+timeline with safe time-travel, and (Pro) Trace Sessions: deep path-level diffs, source
+call-sites, snapshot comparison and shareable debugging sessions. A zero-setup
+experimental Component Hooks view is included, honestly labelled: it shows React hook
+values and cannot guarantee they came from Zustand.
 
 **Free**
-- Live component state, updating in real time
-- Search/filter by component name
+- Accurate **Stores** view for stores registered with `zustand-devtools-bridge` (one line per store)
+- Basic action **Timeline** across all stores, with search
+- **Safe time-travel**: the original in-memory state is restored by ID — Dates, Maps, Sets and your action functions survive; lossy copies are never restored
+- **Component Hooks (experimental)**: the zero-setup Fiber view — shows hook values found in React components, which are *not guaranteed to come from Zustand*
 - Matches Chrome DevTools' own light/dark theme
 
-**Paid upgrade** (one-time purchase, via the optional `zustand-devtools-bridge` npm
-package — one import line in a store)
-- Named action log across all your stores
-- One-click time-travel to any past state
-- Unified multi-store timeline
+**Pro: Trace Sessions** (€9.99 one-time; 3 full preview sessions free)
+- Record a trace while reproducing a bug: every change captured with a deep path-level diff (`cart.items[3].quantity`) and a best-effort source call-site
+- Filter by store, action, changed path, call-site, bookmarks; compare any two entries
+- Export a redacted, versioned session a teammate can import and inspect offline (view-only, validated, never executed)
 
 ## Install
 
-The extension itself isn't on the Chrome Web Store yet — in progress. The optional paid
-tier's package is published and installable today:
+The extension isn't on the Chrome Web Store yet, and the bridge described here is
+**0.2.0, which is not yet published to npm** (npm currently serves the old 0.1.1).
+Publication order matters: publish `zustand-devtools-bridge@0.2.0` FIRST, then submit
+extension 1.1.0 — the extension speaks protocol v2, which 0.1.1 does not emit.
+
+The bridge is part of the **free** foundation (accurate Stores view, Timeline, safe
+time-travel); only Trace Sessions is paid. One line per store:
 
 ```
-npm install zustand-devtools-bridge
+npm install zustand-devtools-bridge   # once 0.2.0 is published
 ```
 
 This repository contains:
 
 - `extension/` — the Chrome extension itself
-- `bridge/` — the `zustand-devtools-bridge` npm package for the paid tier
+- `bridge/` — the `zustand-devtools-bridge` npm package (free foundation: Stores/Timeline/safe time-travel; also feeds Pro Trace Sessions)
 - `test-app/` — verification fixtures used during development
 
 ## How it works
@@ -50,7 +58,10 @@ with the Zustand panel active on a tab; otherwise it's completely idle.
 
 ## Privacy
 
-No data collection, no analytics, no server. See `PRIVACY.md` for details.
+No analytics, no telemetry, no server. State stays on your machine; the only network
+requests are the license-activation calls you trigger yourself, which send the license
+key and a generic instance name to Lemon Squeezy. See `PRIVACY.md` for the full picture,
+including what lives in `chrome.storage.local` and the page's `sessionStorage`.
 
 ## License
 

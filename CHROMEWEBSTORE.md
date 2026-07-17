@@ -45,9 +45,10 @@ HOW TO USE
 
 PRIVACY
 This extension processes component state locally so it can display it in your own open
-DevTools panel. That state is not sent off your device. The only outbound network request
-is triggered by you when you paste a license key; the key is sent to Lemon Squeezy to
-activate the optional paid tier.
+DevTools panel. That state is not sent off your device, and there is no analytics or
+telemetry. The only outbound network requests are the ones you trigger by pasting a
+license key: the key and a generic instance name ("Zustand DevTools") are sent to Lemon
+Squeezy to activate the optional paid tier.
 
 PERMISSIONS
 • "storage" — keeps your recent Trace Sessions, the free-preview counter, and your
@@ -99,7 +100,7 @@ English
 | Permission | Type | Justification |
 |------------|------|----------------|
 | `storage` | permissions | Stores recent Trace Sessions, the preview counter, and the validated license record locally so the Pro tier doesn't re-validate on every DevTools open. |
-| `https://api.lemonsqueezy.com/*` | host_permissions | Only contacted when the user pastes a license key into the Trace Sessions tab's "Activate" field, to activate it through Lemon Squeezy's public License API. No other data is sent. |
+| `https://api.lemonsqueezy.com/*` | host_permissions | Only contacted when the user pastes a license key into the Trace Sessions tab's "Activate" field, to activate it through Lemon Squeezy's public License API. The request carries the license key and a generic instance name ("Zustand DevTools"); no application state or other data is sent. |
 | `<all_urls>` (content scripts) | content_scripts matches | Needed to install a lightweight React-renderer hook before React loads on any page the developer might inspect, since Zustand apps can run on any site. The hook stays inert — no data is read or sent — unless the developer has DevTools open with the Zustand panel active for that tab. |
 
 ## Privacy & Data Use
@@ -109,8 +110,9 @@ English
 Chrome's disclosure rules include data processed locally, not only data sent to a server.
 The extension therefore handles website content (component state) locally to provide its
 single debugging purpose. It does not transmit that state off-device. If the user enters
-a paid-tier license key, the key is sent to Lemon Squeezy's License API for activation and
-stored locally in `chrome.storage.local`.
+a paid-tier license key, the key and a generic instance name ("Zustand DevTools") are
+sent to Lemon Squeezy's License API for activation, and the activation result is stored
+locally in `chrome.storage.local`.
 
 | Data Type | Handled? | Transmitted Off-Device? | Purpose | Shared with Third Parties? |
 |-----------|-----------|--------------------------|---------|------------------------------|
