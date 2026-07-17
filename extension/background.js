@@ -26,13 +26,23 @@ chrome.runtime.onConnect.addListener((port) => {
   panelPortsByTabId.set(tabId, port);
   // A panel just opened for this tab — tell the page to start (or resume)
   // reporting live state, and ask any registered bridge stores to replay
-  // their buffered action history so the panel isn't starting from zero.
+  // their registrations and buffered action history so the panel isn't
+  // starting from zero.
   notifyTab(tabId, { type: "ACTIVATE" });
+  notifyTab(tabId, { type: "REQUEST_STORES" });
   notifyTab(tabId, { type: "REQUEST_HISTORY" });
 
+  // Panel -> page commands. Allowlist only.
+  const PANEL_COMMANDS = new Set([
+    "REQUEST_STORES",
+    "REQUEST_HISTORY",
+    "TIME_TRAVEL_JUMP",
+    "TRACE_START",
+    "TRACE_STOP",
+    "TRACE_CANCEL",
+  ]);
   port.onMessage.addListener((message) => {
-    // Panel -> page commands, e.g. a time-travel jump to a past action.
-    if (message && message.type === "TIME_TRAVEL_JUMP") {
+    if (message && PANEL_COMMANDS.has(message.type)) {
       notifyTab(tabId, message);
     }
   });

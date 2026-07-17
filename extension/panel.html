@@ -8,42 +8,139 @@
     <header id="topbar">
       <div id="live-indicator" class="dot" title="Not connected"></div>
       <div id="status">Waiting for a React renderer on this page…</div>
-      <input id="search" type="text" placeholder="Filter by component name…" />
+      <input id="search" type="text" placeholder="Filter (hooks / timeline)…" aria-label="Filter hooks and timeline" />
     </header>
     <nav id="tabs">
-      <button class="tab-btn active" data-tab="live">Live State</button>
-      <button class="tab-btn" data-tab="actions">Action Log</button>
+      <button class="tab-btn active" data-tab="stores">Stores</button>
+      <button class="tab-btn" data-tab="hooks">Component Hooks <span class="badge warn">experimental</span></button>
+      <button class="tab-btn" data-tab="timeline">Timeline</button>
+      <button class="tab-btn" data-tab="trace">Trace Sessions <span class="badge">Pro</span></button>
     </nav>
     <main id="panels">
-      <section id="tab-live" class="tab-panel active">
-        <div id="list"></div>
-        <div id="empty" class="empty-state" style="display: none">
-          No component state detected yet — interact with the page.
+      <section id="tab-stores" class="tab-panel active">
+        <div id="stores-list"></div>
+        <div id="stores-empty" class="empty-state">
+          <p><strong>No registered stores.</strong> The Stores view shows Zustand stores explicitly
+          registered with <code>zustand-devtools-bridge</code> — one line per store:</p>
+          <pre>import { withDevtoolsBridge } from 'zustand-devtools-bridge';
+
+const useCart = create(withDevtoolsBridge(creator, { name: 'cart' }));</pre>
+          <p>If React is detected but nothing appears: the page may not use the bridge, it may run a
+          production build with <code>enabled: false</code> (by design), or the store may be created
+          after this panel opened — interact with the page to trigger it.</p>
         </div>
       </section>
-      <section id="tab-actions" class="tab-panel">
-        <div id="actions-paywall" class="paywall" style="display: none">
-          <h2>Action Log &amp; Time-Travel</h2>
-          <p>
-            Add the one-line <code>zustand-devtools-bridge</code> package to a store to unlock a
-            named action log, one-click time-travel, and a unified multi-store timeline.
-          </p>
-          <p id="license-status" class="license-status"></p>
-          <div class="license-row">
-            <button id="buy-btn">Buy license</button>
-            <input id="license-input" type="text" placeholder="Paste license key…" />
-            <button id="activate-btn">Activate</button>
+
+      <section id="tab-hooks" class="tab-panel">
+        <div class="banner">
+          Experimental: shows application hook values found in React components via the Fiber tree.
+          Values are <strong>not guaranteed to come from Zustand</strong> — plain useState and other
+          hooks appear too. For accurate store state, use the Stores tab.
+        </div>
+        <div id="hooks-list"></div>
+        <div id="hooks-empty" class="empty-state">No component hook values detected yet — interact with the page.</div>
+      </section>
+
+      <section id="tab-timeline" class="tab-panel">
+        <div id="timeline-note" class="note-line"></div>
+        <div id="timeline-list"></div>
+        <div id="timeline-empty" class="empty-state">
+          No actions recorded yet. Actions from bridge-registered stores appear here — free, across
+          all stores. Entries recorded before the last reload are view-only: their original state
+          no longer exists in memory, and this panel never restores lossy copies.
+        </div>
+      </section>
+
+      <section id="tab-trace" class="tab-panel">
+        <div id="trace-idle">
+          <div class="trace-intro">
+            <h2>Trace Sessions</h2>
+            <p>Record while you reproduce a bug. Every state change is captured with its deep
+            path-level diff and a best-effort source call-site. Then filter, compare any two
+            moments, and export the whole session for a teammate.</p>
+            <p id="preview-status" class="note-line"></p>
+            <div class="trace-controls">
+              <button id="start-trace-btn" class="primary-btn">Start Trace</button>
+              <label class="mini-btn file-btn">Import trace… <input id="import-input" type="file" accept=".json,application/json" hidden /></label>
+            </div>
+            <p id="import-error" class="error-line" role="alert"></p>
+            <p id="trace-no-stores" class="note-line" style="display:none">
+              Tracing needs at least one store registered through <code>zustand-devtools-bridge</code> (see the Stores tab).
+            </p>
+          </div>
+
+          <div id="trace-paywall" class="paywall" style="display: none">
+            <h2>Find where your next state bug started.</h2>
+            <p>Find where a state change started, compare the exact differences, and share the
+            complete debugging session.</p>
+            <p><strong>€9.99</strong> founding price · one-time purchase · no subscription ·
+            <a href="https://smellybricc.github.io/zustand-devtools-site/terms.html" target="_blank" rel="noopener">14-day refund policy</a></p>
+            <p class="note-line">Stays free forever: registered store inspection, the action
+            timeline, search, and safe time-travel. Pro unlocks unlimited Trace Sessions —
+            call-sites, deep diffs, comparison, export/import. Your three preview sessions remain
+            viewable below.</p>
+            <p id="license-status" class="license-status"></p>
+            <div class="license-row">
+              <button id="buy-btn">Unlock Pro</button>
+              <input id="license-input" type="text" placeholder="Paste license key…" aria-label="License key" />
+              <button id="activate-btn">Activate</button>
+            </div>
+          </div>
+
+          <h3 class="section-h">Recent sessions</h3>
+          <div id="sessions-list"></div>
+          <div id="sessions-empty" class="empty-state">No trace sessions yet.</div>
+        </div>
+
+        <div id="trace-recording" style="display: none">
+          <div class="trace-intro">
+            <h2><span class="rec-dot" aria-hidden="true"></span> Recording trace</h2>
+            <p><span id="trace-rec-count">0</span> / <span id="trace-rec-limit">–</span> actions ·
+            <span id="trace-rec-elapsed">0:00</span> elapsed</p>
+            <p class="note-line">Reproduce the bug now. Rich capture (call-sites, deep snapshots)
+            only happens while this is recording.</p>
+            <div class="trace-controls">
+              <button id="stop-trace-btn" class="primary-btn">Stop Trace</button>
+              <button id="cancel-trace-btn" class="mini-btn">Cancel (discard)</button>
+            </div>
           </div>
         </div>
-        <div id="actions-toolbar" class="actions-toolbar" style="display: none">
-          <button id="export-btn">Export JSON</button>
+
+        <div id="trace-session" style="display: none">
+          <div class="session-toolbar">
+            <button id="session-back" class="mini-btn" aria-label="Back to sessions">←</button>
+            <span id="session-title" class="session-title"></span>
+            <span id="trace-count" class="note-line"></span>
+            <span id="trace-filter-pending" class="note-line"></span>
+            <span class="spacer"></span>
+            <button id="export-state-btn" class="mini-btn" title="Trace files may contain sensitive application state, file paths and developer notes. Review and redact before sharing.">Export with state</button>
+            <button id="export-meta-btn" class="mini-btn" title="Structure and metadata only — no state values.">Export metadata only</button>
+          </div>
+          <div id="session-imported-note" class="banner" style="display:none">
+            Imported trace — view-only. Nothing from this file runs or touches the inspected page;
+            replay is unavailable because the original in-memory state exists only where it was recorded.
+          </div>
+          <div class="export-warning note-line">
+            Export note: trace files may contain sensitive application state, file paths and notes.
+            Review before sharing — or use “metadata only”.
+          </div>
+          <div class="session-filters">
+            <select id="trace-filter-store" aria-label="Filter by store"></select>
+            <input id="trace-filter-text" type="text" placeholder="Action name…" aria-label="Filter by action name" />
+            <input id="trace-filter-path" type="text" placeholder="Changed path (e.g. items[3].quantity)" aria-label="Filter by changed state path" />
+            <input id="trace-filter-callsite" type="text" placeholder="Call-site…" aria-label="Filter by call-site" />
+            <label class="check-label"><input id="trace-filter-bookmarked" type="checkbox" /> ★ only</label>
+          </div>
+          <div class="session-split">
+            <div id="trace-vlist" tabindex="0" aria-label="Trace entries">
+              <div id="vlist-spacer"></div>
+              <div id="vlist-layer"></div>
+            </div>
+            <div id="trace-detail"></div>
+          </div>
         </div>
-        <div id="actions-empty" class="empty-state" style="display: none">
-          No actions recorded yet — trigger a store update on the page.
-        </div>
-        <div id="actions-list"></div>
       </section>
     </main>
-    <script src="panel.js"></script>
+    <script type="module" src="panel/main.js"></script>
   </body>
 </html>
