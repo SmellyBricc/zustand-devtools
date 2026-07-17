@@ -81,7 +81,7 @@ purchase before any public launch.
 >   a test build on request.
 >
 > Best regards,
-> Jakub Opoczka
+> Kuba Opoczka
 
 ## Evidence checklist for the reviewer
 
