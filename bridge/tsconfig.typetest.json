@@ -1,0 +1,33 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": [
+      "ES2020",
+      "DOM"
+    ],
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "zustand/vanilla": [
+        "../node_modules/zustand5/vanilla.d.ts"
+      ],
+      "zustand": [
+        "../node_modules/zustand5/index.d.ts"
+      ],
+      "zustand-devtools-bridge": [
+        "./src/index.ts"
+      ],
+      "zustand/middleware": [
+        "../node_modules/zustand5/middleware.d.ts"
+      ]
+    }
+  },
+  "include": [
+    "src",
+    "test/types"
+  ]
+}

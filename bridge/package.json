@@ -1,15 +1,40 @@
 {
   "name": "zustand-devtools-bridge",
-  "version": "0.1.1",
-  "description": "One-line integration that unlocks a named action log, time-travel, and a unified multi-store timeline in the Zustand DevTools Chrome extension.",
+  "version": "0.2.0",
+  "description": "Explicit store registration, safe raw-state time-travel, and Trace Session capture for the Zustand DevTools Chrome extension.",
   "type": "module",
-  "main": "src/index.js",
-  "exports": "./src/index.js",
-  "files": ["src", "LICENSE"],
-  "sideEffects": false,
-  "peerDependencies": {
-    "zustand": ">=4.0.0"
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
   },
-  "keywords": ["zustand", "devtools", "chrome-extension", "state-management", "time-travel"],
-  "license": "MIT"
+  "files": [
+    "dist",
+    "src",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "prepack": "npm run build"
+  },
+  "peerDependencies": {
+    "zustand": ">=4.5.0 <6"
+  },
+  "keywords": [
+    "zustand",
+    "devtools",
+    "chrome-extension",
+    "state-management",
+    "time-travel",
+    "trace"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.5.0",
+    "zustand": "^5.0.0"
+  }
 }

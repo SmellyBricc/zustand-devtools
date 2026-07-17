@@ -1,65 +1,109 @@
 # zustand-devtools-bridge
 
-The free [Zustand DevTools](https://github.com/SmellyBricc/zustand-devtools) Chrome extension already shows live
-component state with zero code changes, via a Fiber-tree inspector. This package is the
-optional, one-line upgrade for stores that want a **named action log**, **one-click
-time-travel**, and a **unified multi-store timeline** in the same panel — the extension's
-paid tier.
-
-## Install
+Explicit store registration for the [Zustand DevTools](https://github.com/SmellyBricc/zustand-devtools)
+Chrome extension: an accurate Stores view, a free action timeline, **safe raw-state
+time-travel**, and Pro **Trace Sessions** (call-sites, deep diffs, comparison, export).
 
 ```
 npm install zustand-devtools-bridge
 ```
 
-This package is ESM-only. If your build tool doesn't support ESM-only packages, use a
-dynamic `import('zustand-devtools-bridge')` instead of a static `require`.
+> **Version note:** this README describes 0.2.0, which is **not yet published** — npm
+> currently serves 0.1.1 (the old protocol). Publish 0.2.0 before shipping extension
+> 1.1.0.
 
-## Usage
+ESM-only, TypeScript-first. Compatibility: zustand `>=4.5 <6`, React 18/19 (the bridge
+itself has no React dependency).
 
-Mirrors Zustand's own `devtools()` middleware shape on purpose — if you've used that, you
-already know this API:
+## Usage (TypeScript)
 
-```js
+```ts
 import { create } from 'zustand';
 import { withDevtoolsBridge } from 'zustand-devtools-bridge';
 
-const useCartStore = create(
+interface CartState {
+  items: string[];
+  addItem: (item: string) => void;
+}
+
+const useCartStore = create<CartState>()(
   withDevtoolsBridge(
-    (set, get) => ({
+    (set) => ({
       items: [],
       addItem: (item) =>
-        set((s) => ({ items: [...s.items, item] }), false, 'addItem'),
-      checkout: () => set({ items: [] }, false, 'checkout'),
+        set((s) => ({ items: [...s.items, item] }), false, 'addItem'), // ← named in the panel
     }),
-    { name: 'cart' }
+    {
+      name: 'cart',
+      enabled: import.meta.env.DEV,           // see "Production" below
+      redact: ['user.auth.token', /secret/i], // see "Sensitive state"
+    }
   )
 );
 ```
 
-Pass an action name as the optional third argument to `set` — `set(partial, replace,
-actionName)` — so it shows up labeled in the Action Log instead of "anonymous". This is
-the exact rough edge our own research found with piggybacking Zustand onto Redux DevTools:
-unlabeled actions and no unified timeline across stores. Every store you wrap with
-`withDevtoolsBridge` and a distinct `name` shows up as its own lane in one interleaved,
-chronological timeline in the panel.
+State is fully inferred (no `any`), the third `actionName` argument is typed on both the
+inner `set` and direct `useCartStore.setState(partial, false, 'name')`, and composition
+with zustand's own middlewares type-checks on zustand 4 and 5. One deliberate looseness:
+`setState` is a single signature (`replace?: boolean`) rather than v5's strict overload
+pair, because zustand 4's middleware typing breaks composition for overloaded setState —
+when you pass `replace: true`, pass the full state.
 
-## What it does (and doesn't) do
+## Why time-travel here is safe
 
-- Every `set()` call is recorded with its resulting state and timestamp, kept in a
-  200-entry rolling buffer per store, and posted to the DevTools panel if it's open.
-- History survives a page reload (backed by `sessionStorage`), so refreshing mid-debug
-  session doesn't wipe your action log — it clears when the tab closes, matching "this
-  session's history," not a permanent record.
-- The panel shows a diff between each action and the one before it for that store — added,
-  changed, and removed keys — not just a full state dump every time.
-- Clicking a past entry in the panel's Action Log calls your store's `setState` directly
-  to restore that snapshot — no action replay, just a direct jump.
-- The full timeline can be exported as JSON from the panel for bug reports.
-- Nothing is sent anywhere except `window.postMessage` on the page itself, which only the
-  Zustand DevTools extension's content script (if installed) ever reads. No network
-  request, no analytics, no server.
-- Action-log recording keeps working even when DevTools is closed, so opening it later
-  still shows the buffered history — it does not gate on an active DevTools connection
-  the way the free tier's Fiber-walker does, since this package is opt-in per store rather
-  than always-on for every page you visit.
+The panel never sends state back into your app. Every action gets a stable ID; the
+original state object is kept in the page's memory, and a time-travel jump resolves that
+ID locally. Dates stay Dates, Maps stay Maps, Sets, RegExps, BigInts, cycles, 50+-item
+arrays, deep nesting and your action functions all survive — proven by the test suite
+against zustand 4 and 5. Entries recorded before the last reload are **view-only** (their
+original objects are gone; the persisted copy is lossy by design and is never restored).
+
+Caveat: raw history holds references, so mutating state in place (instead of replacing it)
+rewrites your own history — the same constraint every state devtool has.
+
+## Production
+
+There is no reliable automatic cross-bundler detection — pass `enabled` explicitly:
+
+```ts
+// Vite
+{ enabled: import.meta.env.DEV }
+// Next.js / Webpack / anything with process.env
+{ enabled: process.env.NODE_ENV !== 'production' }
+```
+
+With `enabled: false` the initializer is returned untouched: no listeners, no messages,
+no history, no sessionStorage, no stack capture — the cost is one boolean check.
+
+## Sensitive state
+
+Keys containing `token`, `password`, `secret`, `authorization`, `apikey`, `api_key` or
+`credential` are redacted from everything that leaves the page (display, exports) by
+default. That default is a convenience, **not** a guarantee — add your own:
+
+```ts
+redact: [
+  'sessionKey',            // key substring (case-insensitive)
+  'user.auth.refresh',     // exact path prefix
+  /items\[\d+\]\.card/,    // RegExp against the full dot path
+]
+```
+
+Raw in-memory state (needed for correct local time-travel) is not modified and never
+leaves the page.
+
+## Options
+
+| Option | Default | |
+|---|---|---|
+| `name` | `store-N` | Panel display name. A registration under an existing name **replaces** it (hot-reload friendly) — give concurrent stores distinct names. |
+| `enabled` | `true` | `false` = zero-footprint no-op. |
+| `redact` | built-ins | Patterns redacted before data leaves the page. |
+| `maxHistory` | `200` | Per-store action history cap (max 1000). |
+
+## Trace Sessions (extension Pro feature)
+
+While a trace is recording, the bridge additionally captures a best-effort call-site per
+action (dev-build stack parse, internal frames stripped — accuracy depends on your build
+and source maps) and deeper display snapshots. Outside an active trace none of that work
+happens. Everything stays on your machine.
