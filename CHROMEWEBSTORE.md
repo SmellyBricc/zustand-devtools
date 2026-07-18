@@ -86,14 +86,17 @@ English
 
 ### Screenshot Notes (shot list — needs your real Chrome, not fabricated)
 
-1. **Stores tab** on a real app: DevTools open, two registered stores with live values
-   (include a redacted field), status bar showing the store count.
-2. **Trace Sessions tab** with a stopped session: entry list plus detail pane showing
-   changed paths and a call-site.
-3. **Time-travel in action**: cursor on a Timeline entry's "Jump here", or a
-   before/after pair showing the app's UI reflecting a restored past state (plus one
-   view-only entry showing the honest "Replay unavailable" state).
-4. Optional: the paywall/"Buy license" state, to show the free vs. paid boundary clearly.
+Full step-by-step instructions live in `test-app/SCREENSHOT-GUIDE.md`, based on the
+`test-app/demo-cart-bug.html` fixture:
+
+1. **Stores view**: the registered `cart` and `auth` stores, including the redacted
+   `accessToken`.
+2. **A stopped Trace Session**: the `increaseKeyboardQty` entry with changed paths
+   `items[1].quantity: 1 → 2`, `total: 168 → 207`, and the source call-site.
+3. **A/B comparison** between `addKeyboard` and `recalcTotal`: quantity `1 → 2`,
+   total `168 → 297`.
+4. Optional: the honest free-preview counter or the €9.99 unlock panel, to show the
+   free vs. paid boundary clearly.
 
 ## Permissions Justification
 

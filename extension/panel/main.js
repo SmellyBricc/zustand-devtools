@@ -490,26 +490,37 @@ function renderVisibleRows() {
 }
 
 function traceRow(e, index) {
+  // A non-interactive positioning container holding two SIBLING controls:
+  // a bookmark toggle and a select button. Never nest a button inside
+  // another button (or role="button") — screen readers can't operate the
+  // inner control.
   const row = document.createElement("div");
   row.className = "trace-row" + (selectedEntry === e ? " selected" : "");
   row.style.top = `${index * ROW_H}px`;
-  row.tabIndex = 0;
-  row.setAttribute("role", "button");
-  row.setAttribute("aria-label", `${e.storeName} ${e.actionName}`);
 
   const star = document.createElement("button");
+  star.type = "button";
   star.className = "star" + (e.bookmarked ? " on" : "");
-  star.textContent = e.bookmarked ? "★" : "☆";
-  star.title = "Bookmark this entry";
-  star.addEventListener("click", (ev) => {
-    ev.stopPropagation();
+  const starName = e.bookmarked
+    ? `Remove bookmark from ${e.storeName} ${e.actionName}`
+    : `Bookmark ${e.storeName} ${e.actionName}`;
+  star.setAttribute("aria-label", starName);
+  star.title = starName;
+  star.setAttribute("aria-pressed", e.bookmarked ? "true" : "false");
+  const glyph = document.createElement("span");
+  glyph.setAttribute("aria-hidden", "true");
+  glyph.textContent = e.bookmarked ? "★" : "☆";
+  star.appendChild(glyph);
+  star.addEventListener("click", () => {
     e.bookmarked = !e.bookmarked;
     persistSessions();
     markDirty(["trace"]);
   });
 
-  const main = document.createElement("div");
-  main.className = "trace-row-main";
+  const selectBtn = document.createElement("button");
+  selectBtn.type = "button";
+  selectBtn.className = "trace-row-select";
+  if (selectedEntry === e) selectBtn.setAttribute("aria-current", "true");
   const line1 = document.createElement("div");
   line1.className = "action-header";
   const store = document.createElement("span");
@@ -527,21 +538,14 @@ function traceRow(e, index) {
   const diff = diffCache.get(sessionKey(activeSession, e.actionId));
   const cs = e.callSite ? ` · ${e.callSite.label} @ ${fileName(e.callSite.url)}:${e.callSite.line}` : "";
   line2.textContent = (diff ? `${diff.changes.length} change${diff.changes.length === 1 ? "" : "s"}` : "…") + cs;
-  main.append(line1, line2);
-
-  row.append(star, main);
-  const select = () => {
+  selectBtn.append(line1, line2);
+  selectBtn.addEventListener("click", () => {
     selectedEntry = e;
     computeDiff(activeSession, e);
     markDirty(["trace"]);
-  };
-  row.addEventListener("click", select);
-  row.addEventListener("keydown", (ev) => {
-    if (ev.key === "Enter" || ev.key === " ") {
-      ev.preventDefault();
-      select();
-    }
   });
+
+  row.append(star, selectBtn);
   return row;
 }
 

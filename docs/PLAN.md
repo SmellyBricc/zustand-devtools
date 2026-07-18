@@ -2,7 +2,8 @@
 
 Baseline (2026-07-16): no automated tests exist (two manual HTML fixtures + "confirmed
 empirically" comments only). Uncommitted user edits in CHROMEWEBSTORE.md and PRIVACY.md
-must be preserved. `marketing/`, `test-app/SCREENSHOT-GUIDE.md`, `*.zip` are git-ignored.
+must be preserved. `marketing/` and `*.zip` are git-ignored
+(`test-app/SCREENSHOT-GUIDE.md` is public since the 1.1.0 rewrite).
 
 Verified problems: (1) page-script.js walks arbitrary hook memoizedState — no Zustand
 proof; (2) TIME_TRAVEL_JUMP restores the sanitized panel copy (Dates→strings, Maps/Sets→

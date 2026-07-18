@@ -3,8 +3,11 @@
 [![npm](https://img.shields.io/npm/v/zustand-devtools-bridge?label=zustand-devtools-bridge)](https://www.npmjs.com/package/zustand-devtools-bridge)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
-A Chrome DevTools panel that shows live [Zustand](https://github.com/pmndrs/zustand) store
-state, with zero code changes to your app.
+Register a [Zustand](https://github.com/pmndrs/zustand) store with one wrapper
+(`withDevtoolsBridge`) to inspect its live state, timeline, safe time-travel and Trace
+Sessions in a Chrome DevTools panel. An experimental zero-setup Component Hooks view is
+also included, but its values are read from React hooks and are not guaranteed to come
+from Zustand.
 
 **Website:** [smellybricc.github.io/zustand-devtools-site](https://smellybricc.github.io/zustand-devtools-site/)
 
@@ -32,8 +35,20 @@ values and cannot guarantee they came from Zustand.
 
 The extension isn't on the Chrome Web Store yet, and the bridge described here is
 **0.2.0, which is not yet published to npm** (npm currently serves the old 0.1.1).
-Publication order matters: publish `zustand-devtools-bridge@0.2.0` FIRST, then submit
-extension 1.1.0 — the extension speaks protocol v2, which 0.1.1 does not emit.
+**Do not install 0.1.1 for extension 1.1.0** — the extension speaks protocol v2, which
+0.1.1 does not emit, so the pair cannot talk to each other. Publication order matters:
+publish `zustand-devtools-bridge@0.2.0` FIRST, then submit extension 1.1.0.
+
+**Beta setup (until 0.2.0 is on npm):** build the bridge from this repository and
+install it from disk:
+
+```
+git clone https://github.com/SmellyBricc/zustand-devtools
+cd zustand-devtools && npm install && npm run build:bridge
+cd your-app && npm install /path/to/zustand-devtools/bridge
+```
+
+Then load `extension/` unpacked at `chrome://extensions` (Developer mode on).
 
 The bridge is part of the **free** foundation (accurate Stores view, Timeline, safe
 time-travel); only Trace Sessions is paid. One line per store:
